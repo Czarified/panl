@@ -1,6 +1,6 @@
 # Panelyze
 
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/yourusername/panelyze)
+[![Tests](https://github.com/Czarified/panelyze/actions/workflows/tests.yml/badge.svg)](https://github.com/Czarified/panelyze/actions/workflows/tests.yml)
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Poetry](https://img.shields.io/badge/dependency%20management-poetry-blue)](https://python-poetry.org/)
 
@@ -26,7 +26,7 @@ pip install panelyze
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/panelyze.git
+git clone https://github.com/Czarified/panelyze.git
 cd panelyze
 
 # Install Poetry if you haven't already
