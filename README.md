@@ -114,4 +114,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Author
 
 Benjamin Crews - your.email@example.com
+
 This project is an Agentic Experiment by the author, and uses Gemini 3 Flash.
