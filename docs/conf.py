@@ -15,12 +15,15 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.mathjax",
     "sphinx_autodoc_typehints",
     "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
+
+myst_enable_extensions = ["dollarmath"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
