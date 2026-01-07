@@ -34,15 +34,27 @@ The validation script `nasa_531.py` discretizes the hole into 400 linear element
 
 At a distance :math:`r = 1.01R` from the center, the calculated stresses are:
 
-+------------------+-----------------------------+-------------------+-------+
-| Angle (:math:`\theta`) | Theoretical :math:`\sigma_{xx}` | BEM :math:`\sigma_{xx}` | Error |
-+==================+=============================+===================+=======+
-| :math:`90^\circ` | 335.83                      | 329.14            | 2.0%  |
-+------------------+-----------------------------+-------------------+-------+
-| :math:`45^\circ` | -                           | 84.14             | -     |
-+------------------+-----------------------------+-------------------+-------+
-| :math:`0^\circ`  | 0.0                         | -6.70             | -     |
-+------------------+-----------------------------+-------------------+-------+
+.. list-table:: Comparison of Stresses at :math:`r = 1.01R`
+   :widths: 20 30 30 20
+   :header-rows: 1
+
+   * - Angle (:math:`\theta`)
+     - Theoretical :math:`\sigma_{xx}`
+     - BEM :math:`\sigma_{xx}`
+     - Error
+   * - :math:`90^\circ`
+     - 335.83
+     - 329.14
+     - 2.0%
+   * - :math:`45^\circ`
+     - -
+     - 84.14
+     - -
+   * - :math:`0^\circ`
+     - 0.0
+     - -6.70
+     - -
+
 
 Discussion
 ----------
