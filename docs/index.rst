@@ -8,6 +8,7 @@ Welcome to Panelyze's documentation!
    theory
    implementation
    validation
+   examples
 
 .. toctree::
    :maxdepth: 2

@@ -31,6 +31,8 @@ furo = "^2024.8.6"
 sphinx-autodoc-typehints = "^3.0.0"
 xdoctest = "^1.2.0"
 myst-parser = "^4.0.0"
+sphinxcontrib-mermaid = "^1.0.0"
+
 
 
 [build-system]
