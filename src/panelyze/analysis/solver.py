@@ -143,14 +143,17 @@ class BEMSolver:
         return du, dt
 
     def solve(
-        self, bc_type: np.ndarray, bc_value: np.ndarray
+        self, bc_type: np.ndarray, bc_value: np.ndarray, is_stress: bool = False
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Solves the BEM system H*u = G*t for unknown boundary values.
 
         Args:
             bc_type: Array of 0 (traction known) or 1 (displacement known).
-            bc_value: Value of the prescribed boundary condition.
+            bc_value: Value of the prescribed boundary condition. If bc_type=0,
+                     this is treated as a running load (force/length) by default.
+            is_stress: If True, treats bc_value as stress (force/area) instead of
+                       running load. Defaults to False.
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: Complete u and t boundary arrays.
@@ -159,29 +162,30 @@ class BEMSolver:
         A = np.zeros((size, size))
         b = np.zeros(size)
 
+        # Handle running loads vs stress
+        # running_load = stress * thickness -> stress = running_load / thickness
+        h = self.kernels.mat.thickness
+        traction_values = np.copy(bc_value)
+        if not is_stress:
+            # We only scale indices where bc_type == 0 (tractions)
+            for k in range(size):
+                if bc_type[k] == 0:
+                    traction_values[k] /= h
+
         # H u = G t
-        # If u is known: move H*u to RHS. Matrix column becomes -G.
-        # If t is known: move G*t to RHS. Matrix column remains H.
-
-        for j in range(size):  # column index
-            if (
-                bc_type[j] == 1
-            ):  # Displacement unknown? No, bc_type defines what is GIVEN.
-                pass  # logic below is better
-
-        # Let x be the vector of unknowns (u if t given, t if u given).
-        # H u - G t = 0
         # For each DOF k:
-        # If u[k] given: t[k] unknown. col k of A = -G[:, k]. RHS -= H[:, k] * u[k]
-        # If t[k] given: u[k] unknown. col k of A = H[:, k]. RHS += G[:, k] * t[k]
+        # If u[k] given (bc_type=1): t[k] unknown.
+        #    col k of A = -G[:, k]. RHS -= H[:, k] * u[k]
+        # If t[k] given (bc_type=0): u[k] unknown.
+        #    col k of A = H[:, k]. RHS += G[:, k] * t[k]
 
         for k in range(size):
             if bc_type[k] == 1:  # Displacement u[k] is GIVEN
                 A[:, k] = -self.G[:, k]
-                b -= self.H[:, k] * bc_value[k]
+                b -= self.H[:, k] * traction_values[k]
             else:  # Traction t[k] is GIVEN
                 A[:, k] = self.H[:, k]
-                b += self.G[:, k] * bc_value[k]
+                b += self.G[:, k] * traction_values[k]
 
         x = np.linalg.solve(A, b)
 
@@ -190,11 +194,11 @@ class BEMSolver:
         t = np.zeros(size)
         for k in range(size):
             if bc_type[k] == 1:
-                u[k] = bc_value[k]
+                u[k] = traction_values[k]
                 t[k] = x[k]
             else:
                 u[k] = x[k]
-                t[k] = bc_value[k]
+                t[k] = traction_values[k]
 
         return u, t
 
@@ -273,6 +277,24 @@ class BEMSolver:
             stresses[i, 2] = C[2, 0] * exx + C[2, 1] * eyy + C[2, 2] * gxy
 
         return stresses
+
+    def compute_resultants(
+        self, points: np.ndarray, u_boundary: np.ndarray, t_boundary: np.ndarray
+    ) -> np.ndarray:
+        """
+        Calculates force resultants (Nx, Ny, Nxy) at interior points.
+
+        Args:
+            points: Array of points (N, 2) where resultants are computed.
+            u_boundary: Solved boundary displacements.
+            t_boundary: Solved boundary tractions.
+
+        Returns:
+            np.ndarray: Array of force resultants (N, 3).
+        """
+        stresses = self.compute_stress(points, u_boundary, t_boundary)
+        h = self.kernels.mat.thickness
+        return stresses * h
 
     def _compute_u_gradient(
         self, P: np.ndarray, u_boundary: np.ndarray, t_boundary: np.ndarray

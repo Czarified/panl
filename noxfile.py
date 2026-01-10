@@ -108,5 +108,8 @@ def docs(session: nox.Session) -> None:
     # Build documentation
     session.run("sphinx-build", "docs", "docs/_build")
 
+    # Run doctests in documentation
+    session.run("sphinx-build", "-b", "doctest", "docs", "docs/_build")
+
     # Run xdoctest on the source code
     session.run("xdoctest", "src/panelyze", "all")
