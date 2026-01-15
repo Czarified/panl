@@ -20,8 +20,8 @@ def sample_setup():
     W, H = 2.0, 2.0
     geom = PanelGeometry(W, H)
     # Simple mesh (4 elements)
-    elements = geom.discretize(num_elements_per_side=1)
-    solver = BEMSolver(kernels, elements)
+    geom.discretize(num_elements_per_side=1)
+    solver = BEMSolver(kernels, geom)
     solver.assemble()
 
     return solver, W, H, thickness

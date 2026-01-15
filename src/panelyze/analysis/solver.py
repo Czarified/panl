@@ -1,9 +1,9 @@
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
-from .geometry import BoundaryElement
-from .kernels import BEMKernels
+from panelyze.analysis.geometry import BoundaryElement, PanelGeometry
+from panelyze.analysis.kernels import BEMKernels
 
 
 class BEMSolver:
@@ -11,10 +11,18 @@ class BEMSolver:
     Boundary Element Method solver for anisotropic elasticity.
     """
 
-    def __init__(self, kernels: BEMKernels, elements: List[BoundaryElement]):
+    def __init__(self, kernels: BEMKernels, geom: PanelGeometry):
+        """
+        Initializes the BEM solver.
+
+        Args:
+            kernels: BEM kernels for the material.
+            geom: The panel geometry being analyzed.
+        """
         self.kernels = kernels
-        self.elements = elements
-        self.num_elements = len(elements)
+        self.geom = geom
+        self.elements = geom.elements
+        self.num_elements = len(self.elements)
         self.M = self.num_elements
 
         # System matrices

@@ -24,7 +24,7 @@ def solved_system():
     geom.add_cutout(CircularCutout(W / 2, H / 2, 1.0))
 
     elements = geom.discretize(num_elements_per_side=4, num_elements_cutout=16)
-    solver = BEMSolver(kernels, elements)
+    solver = BEMSolver(kernels, geom)
     solver.assemble()
 
     # Boundary Conditions: Tension in X

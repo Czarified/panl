@@ -19,7 +19,7 @@ geom.add_cutout(CircularCutout(W / 2, H / 2, 1.5))
 n_side = 40
 elements = geom.discretize(num_elements_per_side=n_side, num_elements_cutout=88)
 
-solver = BEMSolver(BEMKernels(mat), elements)
+solver = BEMSolver(BEMKernels(mat), geom)
 solver.assemble()
 
 bc_type = np.zeros(2 * len(elements), dtype=int)

@@ -90,6 +90,7 @@ class PanelGeometry:
         for cutout in self.cutouts:
             elements.extend(cutout.discretize(num_elements_cutout))
 
+        self.elements = elements
         return elements
 
     def _discretize_line(

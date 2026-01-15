@@ -24,7 +24,7 @@ def test_orthotropic_scf_5_3_1():
 
     # Discretize: Use dense mesh to ensure accuracy
     elements = geom.discretize(num_elements_per_side=40, num_elements_cutout=80)
-    solver = BEMSolver(kernels, elements)
+    solver = BEMSolver(kernels, geom)
     solver.assemble()
 
     # Boundary Conditions: Uniform tension in X (sigma = 100)

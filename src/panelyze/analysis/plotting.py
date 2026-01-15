@@ -178,8 +178,8 @@ def _highlight_max_stresses(
         f"{label}: {max_val:.2f}",
         xy=(max_pt[0], max_pt[1]),
         xytext=(
-            max_pt[0] + 0.1 * solver.kernels.mat.thickness,
-            max_pt[1] + 0.1 * solver.kernels.mat.thickness,
+            0.25 * solver.geom.width,
+            0.25 * solver.geom.height,
         ),
         arrowprops=dict(facecolor="black", shrink=0.05, width=1, headwidth=5),
         bbox=dict(boxstyle="round,pad=0.3", fc="yellow", ec="k", lw=1, alpha=0.7),

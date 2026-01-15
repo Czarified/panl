@@ -24,7 +24,7 @@ def test_isotropic_scf():
 
     # Discretize
     elements = geom.discretize(num_elements_per_side=40, num_elements_cutout=80)
-    solver = BEMSolver(kernels, elements)
+    solver = BEMSolver(kernels, geom)
     solver.assemble()
 
     # Boundary Conditions: Uniform tension in X (sigma = 100)
