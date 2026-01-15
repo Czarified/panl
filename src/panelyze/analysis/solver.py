@@ -396,14 +396,20 @@ class BEMSolver:
 
         return stresses
 
-    def print_cutout_stress_table(self, u_boundary: np.ndarray, t_boundary: np.ndarray):
+    def print_cutout_stress_table(
+        self, u_boundary: np.ndarray, t_boundary: np.ndarray
+    ) -> np.ndarray:
         """
         Prints a stress table for elements tagged as 'cutout'.
 
         Args:
             u_boundary: Solved boundary displacements.
             t_boundary: Solved boundary tractions.
+
+        Returns:
+            np.ndarray: Array of stresses for cutout elements.
         """
+        results = []
         stresses = self.compute_boundary_stress(u_boundary, t_boundary)
 
         header = (
@@ -420,6 +426,9 @@ class BEMSolver:
                     f"{i:<8d} {el.center[0]:<10.3f} {el.center[1]:<10.3f} "
                     f"{s[0]:<12.1f} {s[1]:<12.1f} {s[2]:<12.1f}"
                 )
+                results.append([i, el.center[0], el.center[1], s[0], s[1], s[2]])
+
+        return np.array(results)
 
     def compute_resultants(
         self, points: np.ndarray, u_boundary: np.ndarray, t_boundary: np.ndarray

@@ -144,28 +144,29 @@ def _highlight_max_stresses(
     boundary_stresses = solver.compute_boundary_stress(u_boundary, t_boundary)
 
     for i, el in enumerate(solver.elements):
-        sxx, syy, txy = boundary_stresses[i]
+        if el.tag == "cutout":
+            sxx, syy, txy = boundary_stresses[i]
 
-        if stress_type.lower() == "vm":
-            val = np.sqrt(sxx**2 - sxx * syy + syy**2 + 3 * txy**2)
-            label = "Max VM"
-        elif stress_type.lower() == "xx":
-            val = sxx
-            label = "Max σxx"
-        elif stress_type.lower() == "yy":
-            val = syy
-            label = "Max σyy"
-        elif stress_type.lower() == "xy":
-            val = abs(txy)
-            label = "Max |τxy|"
-        elif stress_type.lower() == "principal":
-            val = (sxx + syy) / 2 + np.sqrt(((sxx - syy) / 2) ** 2 + txy**2)
-            label = "Max P1"
-        else:
-            raise ValueError(f"Unknown stress_type: {stress_type}")
+            if stress_type.lower() == "vm":
+                val = np.sqrt(sxx**2 - sxx * syy + syy**2 + 3 * txy**2)
+                label = "Max VM"
+            elif stress_type.lower() == "xx":
+                val = sxx
+                label = "Max σxx"
+            elif stress_type.lower() == "yy":
+                val = syy
+                label = "Max σyy"
+            elif stress_type.lower() == "xy":
+                val = abs(txy)
+                label = "Max |τxy|"
+            elif stress_type.lower() == "principal":
+                val = (sxx + syy) / 2 + np.sqrt(((sxx - syy) / 2) ** 2 + txy**2)
+                label = "Max P1"
+            else:
+                raise ValueError(f"Unknown stress_type: {stress_type}")
 
-        stress_values.append(val)
-        points.append(el.center)
+            stress_values.append(val)
+            points.append(el.center)
 
     stress_values = np.array(stress_values)
     max_idx = np.argmax(stress_values)
