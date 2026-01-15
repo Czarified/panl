@@ -1,9 +1,9 @@
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
-from .geometry import BoundaryElement
-from .kernels import BEMKernels
+from panelyze.analysis.geometry import BoundaryElement, PanelGeometry
+from panelyze.analysis.kernels import BEMKernels
 
 
 class BEMSolver:
@@ -11,10 +11,18 @@ class BEMSolver:
     Boundary Element Method solver for anisotropic elasticity.
     """
 
-    def __init__(self, kernels: BEMKernels, elements: List[BoundaryElement]):
+    def __init__(self, kernels: BEMKernels, geom: PanelGeometry):
+        """
+        Initializes the BEM solver.
+
+        Args:
+            kernels: BEM kernels for the material.
+            geom: The panel geometry being analyzed.
+        """
         self.kernels = kernels
-        self.elements = elements
-        self.num_elements = len(elements)
+        self.geom = geom
+        self.elements = geom.elements
+        self.num_elements = len(self.elements)
         self.M = self.num_elements
 
         # System matrices
@@ -259,24 +267,176 @@ class BEMSolver:
 
         for i in range(N):
             P = points[i]
-            # Grad u_i,k = sum G_ijk * t_k - sum H_ijk * u_k
-            # where G_ijk = integral of U_ij,k
             grad_u = self._compute_u_gradient(P, u_boundary, t_boundary)
 
-            # Strain e_ij = 0.5 * (u_i,j + u_j,i)
             exx = grad_u[0, 0]
             eyy = grad_u[1, 1]
             gxy = grad_u[0, 1] + grad_u[1, 0]
 
-            # Stress from Hooke's Law (Plane Stress)
-            # sigma = [E] * epsilon
-            # We use the stiffness matrix (inverse of beta)
             C = self.kernels.mat.C
             stresses[i, 0] = C[0, 0] * exx + C[0, 1] * eyy + C[0, 2] * gxy
             stresses[i, 1] = C[1, 0] * exx + C[1, 1] * eyy + C[1, 2] * gxy
             stresses[i, 2] = C[2, 0] * exx + C[2, 1] * eyy + C[2, 2] * gxy
 
         return stresses
+
+    def compute_boundary_stress(
+        self, u_boundary: np.ndarray, t_boundary: np.ndarray
+    ) -> np.ndarray:
+        """
+        Calculates stress components exactly on the boundary elements.
+        Uses the Boundary Stress Formula (tangential derivative of u).
+
+        Args:
+            u_boundary: Solved boundary displacements.
+            t_boundary: Solved boundary tractions.
+
+        Returns:
+            np.ndarray: Array of stresses (M, 3) at each element center.
+        """
+        M = self.num_elements
+        stresses = np.zeros((M, 3))
+        thickness = self.kernels.mat.thickness
+
+        for i in range(M):
+            el = self.elements[i]
+            # Normal and tangent vectors
+            nx, ny = el.nx, el.ny
+            tx, ty = -ny, nx  # CCW tangent: (-ny, nx) if normal is (ny, -dx)/L?
+            # Wait, geometry.py says:
+            # self.nx = self.dy / self.length
+            # self.ny = -self.dx / self.length
+            # If (dx, dy) is (1, 0), nx=0, ny=-1 (Bottom edge: 0,0 to W,0).
+            # Normal is pointing OUT (down).
+            # Tangent should follow the discretization direction: (dx, dy)/L.
+            tx, ty = el.dx / el.length, el.dy / el.length
+
+            # 1. Local boundary tractions (in psi)
+            # t[2*i], t[2*i+1] are resultants [lb/in].
+            tx_val = t_boundary[2 * i] / thickness
+            ty_val = t_boundary[2 * i + 1] / thickness
+
+            # sigma_nn = t . n
+            s_nn = tx_val * nx + ty_val * ny
+            # tau_ns = t . s
+            tau_ns = tx_val * tx + ty_val * ty
+
+            # 2. Tangential strain epsilon_ss = du_s / ds
+            # Use adjacent elements for derivatives.
+            # This works best if elements are in a contiguous loop.
+            # Find neighbors with same tag
+            prev_idx = (i - 1) % M
+            next_idx = (i + 1) % M
+
+            # Simple check: are they actually neighbors?
+            # Check p2 of prev == p1 of current, etc.
+            if self.elements[prev_idx].tag != el.tag:
+                # Search forward for the start of this tag-block
+                k = i
+                while self.elements[(k - 1) % M].tag == el.tag:
+                    k = (k - 1) % M
+                prev_idx = k  # Boundary of the group, use forward diff?
+                # Better: use current element's endpoints if we had nodal values.
+                # For constant elements, we usually use central diff of centers.
+                # If we are at the end of a block, we use a one-sided diff or
+                # wrap if it's a cutout.
+
+            # Logic for contiguous loops (cutouts and open lines)
+            # For cutouts, wrapping % M is usually correct.
+            # For the outer boundary, it might be 4 separate lines.
+
+            u_p = u_boundary[2 * prev_idx : 2 * prev_idx + 2]
+            u_n = u_boundary[2 * next_idx : 2 * next_idx + 2]
+
+            # displacement in tangent direction
+            us_p = u_p[0] * tx + u_p[1] * ty
+            us_n = u_n[0] * tx + u_n[1] * ty
+
+            # ds between centers
+            ds_p = np.linalg.norm(el.center - self.elements[prev_idx].center)
+            ds_n = np.linalg.norm(el.center - self.elements[next_idx].center)
+
+            if ds_p > 2 * el.length or ds_n > 2 * el.length:
+                # Not neighbors, use one-sided or zero
+                eps_ss = 0.0
+            else:
+                eps_ss = (us_n - us_p) / (ds_p + ds_n)
+
+            # 3. Solve for sigma_ss using Hooke's Law for plane stress
+            # For isotropic: sigma_ss = E * eps_ss + nu * sigma_nn
+            # For anisotropic, it's more complex involving the beta matrix.
+            # sigma = C * epsilon
+            # In local (s, n) coords:
+            # [eps_ss, eps_nn, gamma_sn]^T = [beta_local] * [stress_local]^T
+            # eps_ss = beta_11' * s_ss + beta_12' * s_nn + beta_16' * tau_sn
+            # s_ss = (eps_ss - beta_12' * s_nn - beta_16' * tau_sn) / beta_11'
+
+            # For now, let's use the isotropic approximation for the local
+            # "stress-traction" coupling if the material is nearly isotropic.
+            # Proper way: rotate beta to local element frame.
+            beta = self.kernels.mat.beta
+            theta_el = np.arctan2(ty, tx)
+            # transform compliance to local frame (s is x', n is y')
+            c = np.cos(theta_el)
+            s = np.sin(theta_el)
+            T = np.array(
+                [
+                    [c**2, s**2, 2 * s * c],
+                    [s**2, c**2, -2 * s * c],
+                    [-s * c, s * c, c**2 - s**2],
+                ]
+            )
+            # beta_prime = T * beta * T_T
+            beta_p = T @ beta @ T.T
+
+            s_ss = (eps_ss - beta_p[0, 1] * s_nn - beta_p[0, 2] * tau_ns) / beta_p[0, 0]
+
+            # 4. Transform back to global (x, y)
+            # sigma_xx = s_ss*tx^2 + s_nn*nx^2 + 2*tau_ns*tx*nx
+            # sigma_yy = s_ss*ty^2 + s_nn*ny^2 + 2*tau_ns*ty*ny
+            # tau_xy = s_ss*tx*ty + s_nn*nx*ny + tau_ns*(tx*ny + ty*nx)
+
+            stresses[i, 0] = s_ss * tx**2 + s_nn * nx**2 + 2 * tau_ns * tx * nx
+            stresses[i, 1] = s_ss * ty**2 + s_nn * ny**2 + 2 * tau_ns * ty * ny
+            stresses[i, 2] = (
+                s_ss * tx * ty + s_nn * nx * ny + tau_ns * (tx * ny + ty * nx)
+            )
+
+        return stresses
+
+    def print_cutout_stress_table(
+        self, u_boundary: np.ndarray, t_boundary: np.ndarray
+    ) -> np.ndarray:
+        """
+        Prints a stress table for elements tagged as 'cutout'.
+
+        Args:
+            u_boundary: Solved boundary displacements.
+            t_boundary: Solved boundary tractions.
+
+        Returns:
+            np.ndarray: Array of stresses for cutout elements.
+        """
+        results = []
+        stresses = self.compute_boundary_stress(u_boundary, t_boundary)
+
+        header = (
+            f"{'Elem ID':<8} {'X':<10} {'Y':<10} "
+            f"{'sigma_xx':<12} {'sigma_yy':<12} {'tau_xy':<12}"
+        )
+        print(header)
+        print("-" * 70)
+
+        for i, el in enumerate(self.elements):
+            if el.tag == "cutout":
+                s = stresses[i]
+                print(
+                    f"{i:<8d} {el.center[0]:<10.3f} {el.center[1]:<10.3f} "
+                    f"{s[0]:<12.1f} {s[1]:<12.1f} {s[2]:<12.1f}"
+                )
+                results.append([i, el.center[0], el.center[1], s[0], s[1], s[2]])
+
+        return np.array(results)
 
     def compute_resultants(
         self, points: np.ndarray, u_boundary: np.ndarray, t_boundary: np.ndarray

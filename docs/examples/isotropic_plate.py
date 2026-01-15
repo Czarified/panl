@@ -26,7 +26,7 @@ def verify_isotropic_plate_running_loads():
     elements = geom.discretize(num_elements_per_side=n_side, num_elements_cutout=80)
 
     # 4. Assemble
-    solver = BEMSolver(BEMKernels(mat), elements)
+    solver = BEMSolver(BEMKernels(mat), geom)
     solver.assemble()
 
     # 5. Boundary Conditions (Running Loads lbf/in)

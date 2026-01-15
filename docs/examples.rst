@@ -80,7 +80,7 @@ Using the `BEMKernels` and `BEMSolver`. By default, the `solve` method treats BC
    from panelyze.analysis.solver import BEMSolver
 
    kernels = BEMKernels(mat)
-   solver = BEMSolver(kernels, elements)
+   solver = BEMSolver(kernels, geom)
    solver.assemble()
 
    # Define Boundary Conditions (BCs)
@@ -133,6 +133,7 @@ The following code block is verified during documentation builds.
    from panelyze.analysis.geometry import PanelGeometry, CircularCutout
    from panelyze.analysis.kernels import BEMKernels
    from panelyze.analysis.solver import BEMSolver
+   from panelyze.analysis import plot_results
 
    E, nu = 10.0e6, 0.33
    G = E / (2 * (1 + nu))
@@ -146,7 +147,7 @@ The following code block is verified during documentation builds.
    n_side = 20
    elements = geom.discretize(num_elements_per_side=n_side, num_elements_cutout=80)
 
-   solver = BEMSolver(BEMKernels(mat), elements)
+   solver = BEMSolver(BEMKernels(mat), geom)
    solver.assemble()
 
    bc_type = np.zeros(2 * len(elements), dtype=int)
@@ -172,6 +173,16 @@ The following code block is verified during documentation builds.
    scf = stress[0, 0] / q_sigma
    print(f"Stress: {stress[0, 0]:.0f} psi")
    print(f"SCF: {scf:.2f}")
+
+   # After solving the system
+   fig = plot_results(
+      solver,
+      u,
+      t,
+      deform_scale=100.0,
+      title="Circular Cutout under X-Tension"
+   )
+   fig.show()
 
 .. testoutput::
 
