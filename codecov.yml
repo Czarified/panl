@@ -1,0 +1,8 @@
+coverage:
+  status:
+    project:
+      default:
+        # Minimum project threshold
+        target: 80%
+        # Allow drops of up to 10%
+        threshold: 10%
