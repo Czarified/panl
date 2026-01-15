@@ -141,13 +141,10 @@ def _highlight_max_stresses(
     stress_values = []
     points = []
 
-    for el in solver.elements:
-        # Evaluate stress slightly inward to avoid singularity.
-        # Shift must be large enough to avoid boundary effects but small enough
-        # to capture the peak. 0.4*L is the numerical peak for constant elements.
-        P = el.center - 0.4 * el.length * np.array([el.nx, el.ny])
-        stress = solver.compute_stress(np.array([P]), u_boundary, t_boundary)[0]
-        sxx, syy, txy = stress
+    boundary_stresses = solver.compute_boundary_stress(u_boundary, t_boundary)
+
+    for i, el in enumerate(solver.elements):
+        sxx, syy, txy = boundary_stresses[i]
 
         if stress_type.lower() == "vm":
             val = np.sqrt(sxx**2 - sxx * syy + syy**2 + 3 * txy**2)

@@ -9,9 +9,10 @@ class BoundaryElement:
     traction/displacement assumption.
     """
 
-    def __init__(self, p1: np.ndarray, p2: np.ndarray):
+    def __init__(self, p1: np.ndarray, p2: np.ndarray, tag: str = "outer"):
         self.p1 = p1  # Start point (x, y)
         self.p2 = p2  # End point (x, y)
+        self.tag = tag  # 'outer' or 'cutout'
         self.center = (p1 + p2) / 2.0
         self.dx = p2[0] - p1[0]
         self.dy = p2[1] - p1[1]
@@ -78,7 +79,10 @@ class PanelGeometry:
         # 4. Left side: (0, H) to (0, 0)
         elements.extend(
             self._discretize_line(
-                np.array([0, self.height]), np.array([0, 0]), num_elements_per_side
+                np.array([0, self.height]),
+                np.array([0, 0]),
+                num_elements_per_side,
+                tag="outer",
             )
         )
 
@@ -89,7 +93,7 @@ class PanelGeometry:
         return elements
 
     def _discretize_line(
-        self, p1: np.ndarray, p2: np.ndarray, num_els: int
+        self, p1: np.ndarray, p2: np.ndarray, num_els: int, tag: str = "outer"
     ) -> List[BoundaryElement]:
         """
         Discretizes a straight line into elements.
@@ -98,6 +102,7 @@ class PanelGeometry:
             p1: Start point.
             p2: End point.
             num_els: Number of elements.
+            tag: Tag for the elements.
 
         Returns:
             List[BoundaryElement]: List of line elements.
@@ -105,7 +110,7 @@ class PanelGeometry:
         els = []
         pts = np.linspace(p1, p2, num_els + 1)
         for i in range(num_els):
-            els.append(BoundaryElement(pts[i], pts[i + 1]))
+            els.append(BoundaryElement(pts[i], pts[i + 1], tag=tag))
         return els
 
 
@@ -144,7 +149,7 @@ class CircularCutout(Cutout):
 
         els = []
         for i in range(num_elements):
-            els.append(BoundaryElement(pts[i], pts[i + 1]))
+            els.append(BoundaryElement(pts[i], pts[i + 1], tag="cutout"))
         return els
 
 
@@ -191,5 +196,5 @@ class EllipticalCutout(Cutout):
 
         els = []
         for i in range(num_elements):
-            els.append(BoundaryElement(pts[i], pts[i + 1]))
+            els.append(BoundaryElement(pts[i], pts[i + 1], tag="cutout"))
         return els
