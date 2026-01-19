@@ -4,3 +4,4 @@ sphinx-autodoc-typehints>=3.5.2
 xdoctest>=1.2.0
 myst-parser>=4.0.0
 numpy>=2.4.0
+sphinxcontrib-mermaid>=1.2.3
