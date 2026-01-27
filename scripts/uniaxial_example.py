@@ -22,22 +22,8 @@ elements = geom.discretize(num_elements_per_side=n_side, num_elements_cutout=88)
 solver = BEMSolver(BEMKernels(mat), geom)
 solver.assemble()
 
-bc_type = np.zeros(2 * len(elements), dtype=int)
-bc_value = np.zeros(2 * len(elements))
-
 q_applied = 500
-for i, el in enumerate(elements):
-    if np.isclose(el.center[0], 0.0):
-        bc_value[2 * i] = -q_applied
-    if np.isclose(el.center[0], W):
-        bc_value[2 * i] = q_applied
-
-bc_type[0:2] = 1
-bc_value[0:2] = 0.0
-bc_type[2 * (n_side - 1) + 1] = 1
-bc_value[2 * (n_side - 1) + 1] = 0.0
-
-u, t = solver.solve(bc_type, bc_value)
+u, t = solver.solve(qx=q_applied)
 
 stress_data = solver.print_cutout_stress_table(u, t)
 # The array contains [id, x, y, sxx, syy, txy]

@@ -123,3 +123,118 @@ def test_elliptical_cutout():
     els = ell.discretize(10)
     assert len(els) == 10
     assert np.isclose(els[0].p1[0], 2.0 * np.cos(np.radians(45.0)))
+
+
+def test_default_boundary_conditions(sample_setup):
+    solver, W, H, h = sample_setup
+
+    # Solve with default qx (uniaxial tension)
+    qx = 100.0
+    u, t = solver.solve(qx=qx)
+
+    # Verify that the results are the same as manual BCs
+    bc_type_manual = np.zeros(2 * solver.M, dtype=int)
+    bc_value_manual = np.zeros(2 * solver.M)
+    for i, el in enumerate(solver.elements):
+        if np.isclose(el.center[0], 0.0):
+            bc_value_manual[2 * i] = -qx
+        if np.isclose(el.center[0], W):
+            bc_value_manual[2 * i] = qx
+
+    # Constraints (corner pins)
+    ll_idx = min(
+        range(solver.M),
+        key=lambda i: np.linalg.norm(solver.elements[i].center - np.array([0, 0])),
+    )
+    lr_idx = min(
+        range(solver.M),
+        key=lambda i: np.linalg.norm(solver.elements[i].center - np.array([W, 0])),
+    )
+
+    bc_type_manual[2 * ll_idx] = 1
+    bc_type_manual[2 * ll_idx + 1] = 1
+    bc_type_manual[2 * lr_idx + 1] = 1
+
+    u_manual, t_manual = solver.solve(bc_type_manual, bc_value_manual)
+
+    np.testing.assert_allclose(u, u_manual)
+    np.testing.assert_allclose(t, t_manual)
+
+
+def test_default_shear_load():
+    # Create a setup for shear
+    E, thickness = 10.0e6, 0.1
+    from panelyze.analysis.geometry import PanelGeometry
+    from panelyze.analysis.kernels import BEMKernels
+    from panelyze.analysis.material import OrthotropicMaterial
+    from panelyze.analysis.solver import BEMSolver
+
+    mat = OrthotropicMaterial(
+        e1=E, e2=E * 1.001, nu12=0.3, g12=E / 2.6, thickness=thickness
+    )
+    kernels = BEMKernels(mat)
+    W, H = 2.0, 2.0
+    geom = PanelGeometry(W, H)
+    geom.discretize(num_elements_per_side=10)
+    solver = BEMSolver(kernels, geom)
+    solver.assemble()
+
+    qxy = 50.0
+    u, t = solver.solve(qxy=qxy)
+
+    # Verify logic by comparing with manual BCs
+    bc_type_manual = np.zeros(2 * solver.M, dtype=int)
+    bc_value_manual = np.zeros(2 * solver.M)
+    for i, el in enumerate(solver.elements):
+        if np.isclose(el.center[0], W):
+            bc_value_manual[2 * i + 1] = qxy
+        if np.isclose(el.center[0], 0):
+            bc_value_manual[2 * i + 1] = -qxy
+        if np.isclose(el.center[1], H):
+            bc_value_manual[2 * i] = qxy
+        if np.isclose(el.center[1], 0):
+            bc_value_manual[2 * i] = -qxy
+
+    ll_idx = min(
+        range(solver.M),
+        key=lambda i: np.linalg.norm(solver.elements[i].center - np.array([0, 0])),
+    )
+    lr_idx = min(
+        range(solver.M),
+        key=lambda i: np.linalg.norm(solver.elements[i].center - np.array([W, 0])),
+    )
+    bc_type_manual[2 * ll_idx] = 1
+    bc_value_manual[2 * ll_idx] = 0.0
+    bc_type_manual[2 * ll_idx + 1] = 1
+    bc_value_manual[2 * ll_idx + 1] = 0.0
+    bc_type_manual[2 * lr_idx + 1] = 1
+    bc_value_manual[2 * lr_idx + 1] = 0.0
+
+    u_manual, t_manual = solver.solve(bc_type_manual, bc_value_manual)
+    np.testing.assert_allclose(u, u_manual)
+    np.testing.assert_allclose(t, t_manual)
+
+
+def test_default_tension_stress():
+    # Verify tension with is_stress=True
+    E, thickness = 10.0e6, 0.1
+    from panelyze.analysis.geometry import PanelGeometry
+    from panelyze.analysis.kernels import BEMKernels
+    from panelyze.analysis.material import OrthotropicMaterial
+    from panelyze.analysis.solver import BEMSolver
+
+    mat = OrthotropicMaterial(
+        e1=E, e2=E * 1.001, nu12=0.3, g12=E / 2.6, thickness=thickness
+    )
+    geom = PanelGeometry(2.0, 2.0)
+    geom.discretize(num_elements_per_side=4)
+    solver = BEMSolver(BEMKernels(mat), geom)
+    solver.assemble()
+
+    stress_applied = 5000.0
+    u, t = solver.solve(qx=stress_applied, is_stress=True)
+
+    # Interior stress at center should be close to 5000
+    pts = np.array([[1.0, 1.0]])
+    stresses = solver.compute_stress(pts, u, t)
+    np.testing.assert_allclose(stresses[0, 0], stress_applied, rtol=1e-2)

@@ -7,6 +7,7 @@ Welcome to Panelyze's documentation!
 
    theory
    implementation
+   boundary_conditions
    validation
    examples
 

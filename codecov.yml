@@ -6,3 +6,9 @@ coverage:
         target: 80%
         # Allow drops of up to 10%
         threshold: 10%
+    patch:
+      default:
+        # Minimum patch threshold
+        target: 80%
+        # Allow drops of up to 20%
+        threshold: 20%

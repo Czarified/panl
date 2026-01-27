@@ -151,21 +151,111 @@ class BEMSolver:
         return du, dt
 
     def solve(
-        self, bc_type: np.ndarray, bc_value: np.ndarray, is_stress: bool = False
+        self,
+        bc_type: np.ndarray = None,
+        bc_value: np.ndarray = None,
+        qx: float = 0.0,
+        qy: float = 0.0,
+        qxy: float = 0.0,
+        is_stress: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Solves the BEM system H*u = G*t for unknown boundary values.
 
+        If bc_type and bc_value are not provided, default boundary conditions
+        are applied based on the provided running loads (qx, qy, qxy).
+        Rigid-body motion is suppressed by pinning the lower-left corner
+        in X and Y, and pinning the lower-right corner in Y.
+
         Args:
-            bc_type: Array of 0 (traction known) or 1 (displacement known).
-            bc_value: Value of the prescribed boundary condition. If bc_type=0,
+            bc_type: Optional array of 0 (traction known) or 1 (displacement known).
+            bc_value: Optional value of the prescribed boundary condition. If bc_type=0,
                      this is treated as a running load (force/length) by default.
-            is_stress: If True, treats bc_value as stress (force/area) instead of
-                       running load. Defaults to False.
+            qx: Optional tension load in X (applied to vertical edges).
+            qy: Optional tension load in Y (applied to horizontal edges).
+            qxy: Optional shear load (applied to all outer edges).
+            is_stress: If True, treats bc_value/qx/qy/qxy as stress (force/area)
+                       instead of running load. Defaults to False.
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: Complete u and t boundary arrays.
+
+        Raises:
+            ValueError: If no 'outer' tagged elements are found for default BCs.
         """
+        # --- Handle Default Boundary Conditions ---
+        # If no explicit BCs are provided, we assume a standard panel analysis
+        # with uniaxial/biaxial/shear loads and RBM suppression.
+        if bc_type is None or bc_value is None:
+            bc_type = np.zeros(2 * self.M, dtype=int)
+            bc_value = np.zeros(2 * self.M)
+
+            # Find outer boundary extent to identify edges and corners
+            outer_elements = [el for el in self.elements if el.tag == "outer"]
+            if not outer_elements:
+                raise ValueError("No 'outer' tagged elements found for default BCs.")
+
+            x_coords = [el.center[0] for el in outer_elements]
+            y_coords = [el.center[1] for el in outer_elements]
+            min_x, max_x = min(x_coords), max(x_coords)
+            min_y, max_y = min(y_coords), max(y_coords)
+
+            # 1. Apply Running Loads (Nastran CQUAD4 convention)
+            # - qx: +X on RH edge, -X on LH edge
+            # - qy: +Y on Top edge, -Y on Bottom edge
+            # - qxy: +Y on RH, +X on Top, -Y on LH, -X on Bottom
+            for i, el in enumerate(self.elements):
+                if el.tag == "outer":
+                    # Tension X (qx)
+                    if np.isclose(el.center[0], min_x):
+                        bc_value[2 * i] -= qx
+                    if np.isclose(el.center[0], max_x):
+                        bc_value[2 * i] += qx
+
+                    # Tension Y (qy)
+                    if np.isclose(el.center[1], min_y):
+                        bc_value[2 * i + 1] -= qy
+                    if np.isclose(el.center[1], max_y):
+                        bc_value[2 * i + 1] += qy
+
+                    # Shear (qxy)
+                    if np.isclose(el.center[0], max_x):  # RH
+                        bc_value[2 * i + 1] += qxy
+                    if np.isclose(el.center[0], min_x):  # LH
+                        bc_value[2 * i + 1] -= qxy
+                    if np.isclose(el.center[1], max_y):  # Top
+                        bc_value[2 * i] += qxy
+                    if np.isclose(el.center[1], min_y):  # Bottom
+                        bc_value[2 * i] -= qxy
+
+            # 2. Rigid-Body Motion (RBM) Suppression
+            # Fix LL corner in X and Y, and LR corner in Y.
+            # Use coordinate-based search to find elements closest to corners.
+            ll_idx = min(
+                range(self.M),
+                key=lambda i: np.linalg.norm(
+                    self.elements[i].center - np.array([min_x, min_y])
+                ),
+            )
+            lr_idx = min(
+                range(self.M),
+                key=lambda i: np.linalg.norm(
+                    self.elements[i].center - np.array([max_x, min_y])
+                ),
+            )
+
+            # NOTE: We apply these as DISPLACEMENT constraints (u=0, v=0)
+            bc_type[2 * ll_idx] = 1  # Fix X
+            bc_value[2 * ll_idx] = 0.0
+            bc_type[2 * ll_idx + 1] = 1  # Fix Y
+            bc_value[2 * ll_idx + 1] = 0.0
+            bc_type[2 * lr_idx + 1] = 1  # Fix Y
+            bc_value[2 * lr_idx + 1] = 0.0
+
+            # FUTURE REFACTOR: In the future, we may want to support a more general
+            # constraint system (e.g., multipoint constraints or nodal constraints).
+            # For now, coordinate-based element pinning is the BEM standard for panels.
+
         size = 2 * self.M
         A = np.zeros((size, size))
         b = np.zeros(size)
