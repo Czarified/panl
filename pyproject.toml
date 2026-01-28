@@ -4,7 +4,17 @@ version = "0.1.0"
 description = "Analysis utility for structural panels with cutouts"
 authors = ["Benjamin Crews <aceF2+Panelyze@gmail.com>"]
 readme = "README.md"
-packages = [{include = "panl", from = "src"}]
+repository = "https://github.com/Czarified/panl"
+homepage = "https://github.com/Czarified/panl"
+documentation = "https://panl.readthedocs.io/"
+keywords = ["structural", "mechanics", "BEM", "panel", "stress", "aerospace"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: MIT License",
+]
+packages = [{ include = "panl", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -35,7 +45,6 @@ myst-parser = "^4.0.0"
 sphinxcontrib-mermaid = "^1.0.0"
 
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
@@ -45,11 +54,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--showlocals",
-]
+addopts = ["--strict-markers", "--strict-config", "--showlocals"]
 
 [tool.coverage.run]
 source = ["panl"]
