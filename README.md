@@ -1,4 +1,4 @@
-![Panl Logo](./docs/images/panl_logo.png)
+![Panl Logo](https://github.com/user-attachments/assets/394c4f2e-60f8-4c6b-8fb5-2df8f39c5de5)
 
 # Panl
 
