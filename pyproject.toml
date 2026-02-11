@@ -1,6 +1,6 @@
 [project]
 name = "panl"
-version = "0.1.0"
+version = "1.0.0"
 description = "Analysis utility for structural panels with cutouts"
 authors = [{ name = "Benjamin Crews", email = "aceF22+panl@gmail.com" }]
 readme = "README.md"
