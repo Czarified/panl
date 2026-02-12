@@ -17,7 +17,7 @@ geom = PanelGeometry(W, H)
 geom.add_cutout(CircularCutout(W / 2, H / 2, 1.5))
 
 n_side = 40
-elements = geom.discretize(num_elements_per_side=n_side, num_elements_cutout=88)
+elements = geom.discretize(num_elements_per_side=n_side, num_elements_cutout=220)
 
 solver = BEMSolver(BEMKernels(mat), geom)
 solver.assemble()
@@ -25,7 +25,7 @@ solver.assemble()
 q_applied = 500
 u, t = solver.solve(qx=q_applied)
 
-stress_data = solver.print_cutout_stress_table(u, t)
+stress_data = solver.cutout_stress_table(u, t, print_table=True)
 # The array contains [id, x, y, sxx, syy, txy]
 # Find the maximum sigma_xx (column index 3)
 max_stress_idx = np.argmax(stress_data[:, 3])

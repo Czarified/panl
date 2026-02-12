@@ -494,15 +494,16 @@ class BEMSolver:
 
         return stresses
 
-    def print_cutout_stress_table(
-        self, u_boundary: np.ndarray, t_boundary: np.ndarray
+    def cutout_stress_table(
+        self, u_boundary: np.ndarray, t_boundary: np.ndarray, print_table: bool = False
     ) -> np.ndarray:
         """
-        Prints a stress table for elements tagged as 'cutout'.
+        Calculates a stress table for elements tagged as 'cutout'.
 
         Args:
             u_boundary: Solved boundary displacements.
             t_boundary: Solved boundary tractions.
+            print_table: Whether to print the stress table.
 
         Returns:
             np.ndarray: Array of stresses for cutout elements.
@@ -514,16 +515,18 @@ class BEMSolver:
             f"{'Elem ID':<8} {'X':<10} {'Y':<10} "
             f"{'sigma_xx':<12} {'sigma_yy':<12} {'tau_xy':<12}"
         )
-        print(header)
-        print("-" * 70)
+        if print_table:
+            print(header)
+            print("-" * 70)
 
         for i, el in enumerate(self.elements):
             if el.tag == "cutout":
                 s = stresses[i]
-                print(
-                    f"{i:<8d} {el.center[0]:<10.3f} {el.center[1]:<10.3f} "
-                    f"{s[0]:<12.1f} {s[1]:<12.1f} {s[2]:<12.1f}"
-                )
+                if print_table:
+                    print(
+                        f"{i:<8d} {el.center[0]:<10.3f} {el.center[1]:<10.3f} "
+                        f"{s[0]:<12.1f} {s[1]:<12.1f} {s[2]:<12.1f}"
+                    )
                 results.append([i, el.center[0], el.center[1], s[0], s[1], s[2]])
 
         return np.array(results)

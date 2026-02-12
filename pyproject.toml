@@ -1,12 +1,10 @@
-[tool.poetry]
+[project]
 name = "panl"
-version = "0.1.0"
+version = "1.0.0"
 description = "Analysis utility for structural panels with cutouts"
-authors = ["Benjamin Crews <aceF2+Panelyze@gmail.com>"]
+authors = [{ name = "Benjamin Crews", email = "aceF22+panl@gmail.com" }]
 readme = "README.md"
-repository = "https://github.com/Czarified/panl"
-homepage = "https://github.com/Czarified/panl"
-documentation = "https://panl.readthedocs.io/"
+requires-python = ">=3.11,<4.0"
 keywords = ["structural", "mechanics", "BEM", "panel", "stress", "aerospace"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -14,36 +12,28 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "License :: OSI Approved :: MIT License",
 ]
+dependencies = ["numpy>=2.4.0", "matplotlib>=3.10.0", "rich>=14.3.1"]
+
+[project.urls]
+Homepage = "https://github.com/Czarified/panl"
+Repository = "https://github.com/Czarified/panl"
+Documentation = "https://panl.readthedocs.io/"
+
+[dependency-groups]
+test = ["pytest>=8.3.4", "pytest-cov>=6.0.0", "safety>=3.3.0"]
+lint = ["black>=24.10.0", "isort>=5.13.2", "flake8>=7.1.1", "darglint>=1.8.1"]
+dev = ["pre-commit>=4.0.1", "nox>=2024.10.9", "nox-poetry>=1.0.3"]
+docs = [
+    "sphinx>=8.1.3",
+    "furo>=2024.8.6",
+    "sphinx-autodoc-typehints>=3.0.0",
+    "xdoctest>=1.2.0",
+    "myst-parser>=4.0.0",
+    "sphinxcontrib-mermaid>=1.0.0",
+]
+
+[tool.poetry]
 packages = [{ include = "panl", from = "src" }]
-
-[tool.poetry.dependencies]
-python = "^3.11"
-numpy = "^2.4.0"
-matplotlib = "^3.10.0"
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.4"
-pytest-cov = "^6.0.0"
-safety = "^3.3.0"
-
-[tool.poetry.group.lint.dependencies]
-black = "^24.10.0"
-isort = "^5.13.2"
-flake8 = "^7.1.1"
-darglint = "^1.8.1"
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^4.0.1"
-nox = "^2024.10.9"
-nox-poetry = "^1.0.3"
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^8.1.3"
-furo = "^2024.8.6"
-sphinx-autodoc-typehints = "^3.0.0"
-xdoctest = "^1.2.0"
-myst-parser = "^4.0.0"
-sphinxcontrib-mermaid = "^1.0.0"
 
 
 [build-system]

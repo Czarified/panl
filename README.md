@@ -1,3 +1,5 @@
+![Panl Logo](https://github.com/user-attachments/assets/394c4f2e-60f8-4c6b-8fb5-2df8f39c5de5)
+
 # Panl
 
 [![Tests](https://github.com/Czarified/panl/actions/workflows/tests.yml/badge.svg)](https://github.com/Czarified/panl/actions/workflows/tests.yml)
